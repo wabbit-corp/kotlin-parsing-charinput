@@ -33,7 +33,16 @@ interface SpanLike<Span> : SpanIn<Span>, SpanOut<Span> {
     fun combine(left: Span, right: Span): Span
 }
 
-@Serializable data object EmptySpan {
+@Serializable sealed interface AnySpan
+@Serializable sealed interface TextSpan : AnySpan {
+    val raw: String
+}
+@Serializable sealed interface PosSpan : AnySpan {
+    val start: Pos
+    val end: Pos
+}
+
+@Serializable data object EmptySpan : AnySpan {
     val spanLike = object : SpanLike<EmptySpan> {
         override val hasRaw: Boolean = false
         override val hasPos: Boolean = false
@@ -45,7 +54,7 @@ interface SpanLike<Span> : SpanIn<Span>, SpanOut<Span> {
     }
 }
 
-@Serializable data class PosOnlySpan(val start: Pos, val end: Pos) {
+@Serializable data class PosOnlySpan(override val start: Pos, override val end: Pos) : PosSpan {
     override fun toString(): String {
         return "PosOnlySpan($start~$end)"
     }
@@ -63,7 +72,7 @@ interface SpanLike<Span> : SpanIn<Span>, SpanOut<Span> {
     }
 }
 
-@Serializable data class TextOnlySpan(val raw: String) {
+@Serializable data class TextOnlySpan(override val raw: String) : TextSpan {
     companion object {
         val spanLike = object : SpanLike<TextOnlySpan> {
             override val hasRaw: Boolean = true
@@ -77,7 +86,7 @@ interface SpanLike<Span> : SpanIn<Span>, SpanOut<Span> {
     }
 }
 
-@Serializable data class TextAndPosSpan(val raw: String, val start: Pos, val end: Pos) {
+@Serializable data class TextAndPosSpan(override val raw: String, override val start: Pos, override val end: Pos) : TextSpan, PosSpan {
     operator fun plus(other: TextAndPosSpan): TextAndPosSpan {
         check(end == other.start)
         return TextAndPosSpan(

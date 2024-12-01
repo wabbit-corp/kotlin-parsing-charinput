@@ -1,8 +1,20 @@
 package one.wabbit.parsing
 
-data class Spanned<out Span, out T>(val span: Span, val value: T) {
-    fun <R> map(mapper: (T) -> R): Spanned<Span, R> = Spanned(span, mapper(value))
-    fun <R> mapSpan(mapper: (Span) -> R): Spanned<R, T> = Spanned(mapper(span), value)
+import kotlinx.serialization.Serializable
+
+@Serializable data class Spanned<out Span, out T>(val span: Span, val value: T) {
+    fun void(): Spanned<Span, Unit> =
+        Spanned(span, Unit)
+    fun emptySpan(): Spanned<EmptySpan, T> =
+        Spanned(EmptySpan, value)
+    fun <R> map(mapper: (T) -> R): Spanned<Span, R> =
+        Spanned(span, mapper(value))
+    fun <R> mapSpan(mapper: (Span) -> R): Spanned<R, T> =
+        Spanned(mapper(span), value)
+    fun <U> replace(value: U): Spanned<Span, U> =
+        Spanned(span, value)
+    fun <U> replaceSpan(span: U): Spanned<U, T> =
+        Spanned(span, value)
 }
 
 object DefaultParsers {
