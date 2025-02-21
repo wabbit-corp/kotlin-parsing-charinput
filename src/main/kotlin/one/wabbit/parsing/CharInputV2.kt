@@ -25,6 +25,16 @@ data class SpanV2(val raw: String) {
     }
 }
 
+
+
+//interface ChunkSource<A> {
+//    fun fetch(): Chunk<A>?
+//}
+//
+//interface AsyncChunkSource<A> {
+//    suspend fun fetch(): Chunk<A>?
+//}
+
 //@Serializable
 //private class MarkState
 //

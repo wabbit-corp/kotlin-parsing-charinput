@@ -173,6 +173,37 @@ sealed class CharInput<out Span> {
         return capture(start)
     }
 
+    inline fun takeStringWhile(predicate: (Char) -> Boolean): String {
+        val sb = StringBuilder()
+        while (predicate(current)) {
+            sb.append(current)
+            advance()
+        }
+        return sb.toString()
+    }
+
+    fun readUntilNewline(): String {
+        val sb = StringBuilder()
+        while (current != EOB && current != '\n' && current != '\r') {
+            sb.append(current)
+            advance()
+        }
+        return sb.toString()
+    }
+
+    fun skipNewline(): Boolean {
+        var found = false
+        if (current == '\r') {
+            found = true
+            advance()
+        }
+        if (current == '\n') {
+            found = true
+            advance()
+        }
+        return found
+    }
+
     abstract fun peek(index: Int): Char
     abstract fun peekN(index: Int, len: Int): String?
     fun peekN(len: Int): String? = peekN(0, len)
@@ -181,8 +212,6 @@ sealed class CharInput<out Span> {
     abstract fun mark(): Mark
     abstract fun reset(mark: Mark): Unit
     abstract fun capture(mark: Mark): Span
-//    abstract fun capture1(mark: Mark): Span1
-//    abstract fun capture0(mark: Mark): Span0
 
     @OptIn(ExperimentalContracts::class)
     fun <R : Any> withMark(block: (Mark) -> R?): R? {
@@ -257,11 +286,7 @@ sealed class CharInput<out Span> {
 
             val start = if (spanIn.hasPos) Pos(mark.markedLine, mark.markedColumn, mark.markIndex) else null
             val end = if (spanIn.hasPos) Pos(line, column, index) else null
-            val result = spanIn.make(raw, start, end) // Span(raw, start, end)
-
-            //markIndex = index
-            //markedLine = line
-            //markedColumn = column
+            val result = spanIn.make(raw, start, end)
 
             return result
         }
@@ -313,6 +338,14 @@ sealed class CharInput<out Span> {
 
     companion object {
         val EOB = Char.MAX_VALUE
+
+        init {
+            require(!EOB.isWhitespace())
+            require(!EOB.isLetterOrDigit())
+            require(!EOB.isIdentifierIgnorable())
+            require(!EOB.isJavaIdentifierPart())
+            require(!EOB.isJavaIdentifierStart())
+        }
 
         fun withEmptySpans(input: String): CharInput<EmptySpan> = FromString(input, EmptySpan.spanLike)
         fun withPosOnlySpans(input: String): CharInput<PosOnlySpan> = FromString(input, PosOnlySpan.spanLike)
