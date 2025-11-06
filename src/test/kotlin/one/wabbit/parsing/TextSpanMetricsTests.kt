@@ -1,53 +1,54 @@
 package one.wabbit.parsing
 
-import one.wabbit.random.gen.Gen
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import one.wabbit.random.gen.Gen
 
 class TextSpanMetricsTests {
-    @Test fun testMonoidLaws() {
-        val M = TextSpanMetrics
+    @Test
+    fun testMonoidLaws() {
+        val m = TextSpanMetrics
 
         // Monoid identity
         Gen.foreach(Gen.string) { a ->
-            assertEquals(M.of(a), M.zero + M.of(a))
-            assertEquals(M.of(a), M.of(a) + M.zero)
+            assertEquals(m.of(a), m.zero + m.of(a))
+            assertEquals(m.of(a), m.of(a) + m.zero)
         }
 
         // Monoid associativity
         Gen.foreach(Gen.string, Gen.string, Gen.string) { a, b, c ->
-            assertEquals(
-                M.of(a) + (M.of(b) + M.of(c)),
-                (M.of(a) + M.of(b)) + M.of(c))
+            assertEquals(m.of(a) + (m.of(b) + m.of(c)), (m.of(a) + m.of(b)) + m.of(c))
         }
 
         // Monoid homomorphism
         Gen.foreach(Gen.string, Gen.string) { a, b ->
-            val m = a + b
-            assertEquals(M.of(m), M.of(a) + M.of(b))
+            val ab = a + b
+            assertEquals(m.of(ab), m.of(a) + m.of(b))
         }
 
         // Corner cases:
-        assertEquals(M.zero, M.zero + M.zero)
+        assertEquals(m.zero, m.zero + m.zero)
     }
 
-    @Test fun testFlagsSemantics() {
+    @Test
+    fun testFlagsSemantics() {
         fun f(s: String) = TextSpanMetrics.of(s)
-        assertEquals(true,  f("\n").startsWithLF)
+        assertEquals(true, f("\n").startsWithLF)
         assertEquals(false, f("\r").startsWithLF)
-        assertEquals(true,  f("\r").endsWithCR)
+        assertEquals(true, f("\r").endsWithCR)
         assertEquals(false, f("\n").endsWithCR)
-        assertEquals(true,  f("\r").endsWithNewline)
-        assertEquals(true,  f("\n").endsWithNewline)
+        assertEquals(true, f("\r").endsWithNewline)
+        assertEquals(true, f("\n").endsWithNewline)
         assertEquals(false, f("").endsWithNewline)
     }
 
-    @Test fun testCrLfMergesOnlyOncePerBoundary() {
-        val M = TextSpanMetrics
-        assertEquals(M.of("\r\n"), M.of("\r") + M.of("\n"))
-        assertEquals(M.of("x\r\n"), M.of("x\r") + M.of("\n"))
-        assertEquals(M.of("\r\nx"), M.of("\r") + M.of("\nx"))
-        assertEquals(M.of("a\r\nb"), M.of("a\r") + M.of("\nb"))
-        assertEquals(M.of("\r\n\r\n"), M.of("\r") + M.of("\n\r") + M.of("\n"))
+    @Test
+    fun testCrLfMergesOnlyOncePerBoundary() {
+        val m = TextSpanMetrics
+        assertEquals(m.of("\r\n"), m.of("\r") + m.of("\n"))
+        assertEquals(m.of("x\r\n"), m.of("x\r") + m.of("\n"))
+        assertEquals(m.of("\r\nx"), m.of("\r") + m.of("\nx"))
+        assertEquals(m.of("a\r\nb"), m.of("a\r") + m.of("\nb"))
+        assertEquals(m.of("\r\n\r\n"), m.of("\r") + m.of("\n\r") + m.of("\n"))
     }
 }

@@ -1,33 +1,32 @@
 package one.wabbit.parsing
 
-import kotlinx.serialization.Serializable
 import java.io.Reader
 import java.nio.channels.FileChannel
 import java.nio.charset.Charset
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
+import kotlinx.serialization.Serializable
 
-@Serializable data class Pos(val line: Long, val column: Long, val index: Long) {
-    override fun toString(): String {
-        return "$line:$column@$index"
-    }
+@Serializable
+data class Pos(val line: Long, val column: Long, val index: Long) {
+    override fun toString(): String = "$line:$column@$index"
 
     companion object {
         val start = Pos(1, 1, 0)
     }
 }
 
-@Serializable data class PosRange(val start: Pos, val end: Pos) {
-    override fun toString(): String {
-        return "SpanPosition($start~$end)"
-    }
+@Serializable
+data class PosRange(val start: Pos, val end: Pos) {
+    override fun toString(): String = "SpanPosition($start~$end)"
 }
 
 interface SpanFactory<out Span> {
     val hasRawText: Boolean
     val hasAbsolutePositions: Boolean
     val hasTextMetrics: Boolean
+
     fun make(raw: String?, range: PosRange?, metrics: TextSpanMetrics?): Span
 }
 
@@ -35,8 +34,11 @@ interface SpanAccess<in Span> {
     val hasRawText: Boolean
     val hasAbsolutePositions: Boolean
     val hasTextMetrics: Boolean
+
     fun raw(span: Span): String
+
     fun start(span: Span): Pos
+
     fun end(span: Span): Pos
 }
 
@@ -45,74 +47,111 @@ interface SpanLike<Span> : SpanFactory<Span>, SpanAccess<Span> {
 }
 
 @Serializable sealed interface AnySpan
-@Serializable sealed interface TextSpan : AnySpan {
+
+@Serializable
+sealed interface TextSpan : AnySpan {
     val raw: String
 }
-@Serializable sealed interface PosSpan : AnySpan {
+
+@Serializable
+sealed interface PosSpan : AnySpan {
     val start: Pos
     val end: Pos
 }
 
-@Serializable data object EmptySpan : AnySpan {
-    val spanLike = object : SpanLike<EmptySpan> {
-        override val hasRawText: Boolean = false
-        override val hasAbsolutePositions: Boolean = false
-        override val hasTextMetrics: Boolean = false
-        override fun make(raw: String?, range: PosRange?, metrics: TextSpanMetrics?): EmptySpan = EmptySpan
-        override fun raw(span: EmptySpan): String = error("No raw string for EmptySpan")
-        override fun start(span: EmptySpan): Pos = error("No start for EmptySpan")
-        override fun end(span: EmptySpan): Pos = error("No end for EmptySpan")
-        override fun combine(left: EmptySpan, right: EmptySpan): EmptySpan = EmptySpan
-    }
-}
-
-@Serializable data class PosOnlySpan(override val start: Pos, override val end: Pos) : PosSpan {
-    override fun toString(): String {
-        return "PosOnlySpan($start~$end)"
-    }
-
-    companion object {
-        val spanLike = object : SpanLike<PosOnlySpan> {
+@Serializable
+data object EmptySpan : AnySpan {
+    val spanLike =
+        object : SpanLike<EmptySpan> {
             override val hasRawText: Boolean = false
-            override val hasAbsolutePositions: Boolean = true
-            override val hasTextMetrics: Boolean = false
-            override fun make(raw: String?, range: PosRange?, metrics: TextSpanMetrics?): PosOnlySpan =
-                PosOnlySpan(range!!.start, range!!.end)
-            override fun raw(span: PosOnlySpan): String = error("No raw string for Span1")
-            override fun start(span: PosOnlySpan): Pos = span.start
-            override fun end(span: PosOnlySpan): Pos = span.end
-            override fun combine(left: PosOnlySpan, right: PosOnlySpan): PosOnlySpan {
-                require(left.end == right.start) { "Non-contiguous spans: ${left.end} vs ${right.start}" }
-                return PosOnlySpan(left.start, right.end)
-            }
-        }
-    }
-}
-
-@Serializable data class TextOnlySpan(override val raw: String) : TextSpan {
-    companion object {
-        val spanLike = object : SpanLike<TextOnlySpan> {
-            override val hasRawText: Boolean = true
             override val hasAbsolutePositions: Boolean = false
             override val hasTextMetrics: Boolean = false
-            override fun make(raw: String?, range: PosRange?, metrics: TextSpanMetrics?): TextOnlySpan =
-                TextOnlySpan(raw!!)
-            override fun raw(span: TextOnlySpan): String = span.raw
-            override fun start(span: TextOnlySpan): Pos = error("No start for Span2")
-            override fun end(span: TextOnlySpan): Pos = error("No end for Span2")
-            override fun combine(left: TextOnlySpan, right: TextOnlySpan): TextOnlySpan = TextOnlySpan(left.raw + right.raw)
+
+            override fun make(
+                raw: String?,
+                range: PosRange?,
+                metrics: TextSpanMetrics?,
+            ): EmptySpan = EmptySpan
+
+            override fun raw(span: EmptySpan): String = error("No raw string for EmptySpan")
+
+            override fun start(span: EmptySpan): Pos = error("No start for EmptySpan")
+
+            override fun end(span: EmptySpan): Pos = error("No end for EmptySpan")
+
+            override fun combine(left: EmptySpan, right: EmptySpan): EmptySpan = EmptySpan
         }
+}
+
+@Serializable
+data class PosOnlySpan(override val start: Pos, override val end: Pos) : PosSpan {
+    override fun toString(): String = "PosOnlySpan($start~$end)"
+
+    companion object {
+        val spanLike =
+            object : SpanLike<PosOnlySpan> {
+                override val hasRawText: Boolean = false
+                override val hasAbsolutePositions: Boolean = true
+                override val hasTextMetrics: Boolean = false
+
+                override fun make(
+                    raw: String?,
+                    range: PosRange?,
+                    metrics: TextSpanMetrics?,
+                ): PosOnlySpan = PosOnlySpan(range!!.start, range!!.end)
+
+                override fun raw(span: PosOnlySpan): String = error("No raw string for Span1")
+
+                override fun start(span: PosOnlySpan): Pos = span.start
+
+                override fun end(span: PosOnlySpan): Pos = span.end
+
+                override fun combine(left: PosOnlySpan, right: PosOnlySpan): PosOnlySpan {
+                    require(left.end == right.start) {
+                        "Non-contiguous spans: ${left.end} vs ${right.start}"
+                    }
+                    return PosOnlySpan(left.start, right.end)
+                }
+            }
     }
 }
 
-@Serializable data class TextAndPosSpan(override val raw: String, override val start: Pos, override val end: Pos) : TextSpan, PosSpan {
+@Serializable
+data class TextOnlySpan(override val raw: String) : TextSpan {
+    companion object {
+        val spanLike =
+            object : SpanLike<TextOnlySpan> {
+                override val hasRawText: Boolean = true
+                override val hasAbsolutePositions: Boolean = false
+                override val hasTextMetrics: Boolean = false
+
+                override fun make(
+                    raw: String?,
+                    range: PosRange?,
+                    metrics: TextSpanMetrics?,
+                ): TextOnlySpan = TextOnlySpan(raw!!)
+
+                override fun raw(span: TextOnlySpan): String = span.raw
+
+                override fun start(span: TextOnlySpan): Pos = error("No start for Span2")
+
+                override fun end(span: TextOnlySpan): Pos = error("No end for Span2")
+
+                override fun combine(left: TextOnlySpan, right: TextOnlySpan): TextOnlySpan =
+                    TextOnlySpan(left.raw + right.raw)
+            }
+    }
+}
+
+@Serializable
+data class TextAndPosSpan(
+    override val raw: String,
+    override val start: Pos,
+    override val end: Pos,
+) : TextSpan, PosSpan {
     operator fun plus(other: TextAndPosSpan): TextAndPosSpan {
         check(end == other.start)
-        return TextAndPosSpan(
-            raw = raw + other.raw,
-            start = start,
-            end = other.end
-        )
+        return TextAndPosSpan(raw = raw + other.raw, start = start, end = other.end)
     }
 
     fun format(original: String): String {
@@ -133,10 +172,9 @@ interface SpanLike<Span> : SpanFactory<Span>, SpanAccess<Span> {
         // (assuming that the span starts on line 42 and ends on line 43 and
         //  the start column starts at startLine and ends at startLineSuffix)
 
-
         val maxDigits = endLine.toString().length
-        fun gutter(n: Int): String =
-            "L" + n.toString().padStart(maxDigits, ' ') + ":  |  "
+
+        fun gutter(n: Int): String = "L" + n.toString().padStart(maxDigits, ' ') + ":  |  "
 
         val b = StringBuilder()
         for (ln in startLine..endLine) {
@@ -145,14 +183,16 @@ interface SpanLike<Span> : SpanFactory<Span>, SpanAccess<Span> {
             val g = gutter(ln)
             b.append(g).append(text).append('\n')
 
-            val underlineStart = when (ln) {
-                startLine -> startColumn
-                else      -> 1
-            }
-            val underlineEndExclusive = when (ln) {
-                endLine -> endColumn
-                else    -> text.length + 1 // columns are 1-based; +1 to underline to EOL
-            }
+            val underlineStart =
+                when (ln) {
+                    startLine -> startColumn
+                    else -> 1
+                }
+            val underlineEndExclusive =
+                when (ln) {
+                    endLine -> endColumn
+                    else -> text.length + 1 // columns are 1-based; +1 to underline to EOL
+                }
 
             val s0 = (underlineStart - 1).coerceAtLeast(0)
             val e0 = underlineEndExclusive.coerceAtLeast(underlineStart)
@@ -166,24 +206,35 @@ interface SpanLike<Span> : SpanFactory<Span>, SpanAccess<Span> {
     }
 
     companion object {
-        val spanLike = object : SpanLike<TextAndPosSpan> {
-            override val hasRawText: Boolean = true
-            override val hasAbsolutePositions: Boolean = true
-            override val hasTextMetrics: Boolean = false
-            override fun make(raw: String?, range: PosRange?, metrics: TextSpanMetrics?): TextAndPosSpan =
-                TextAndPosSpan(raw!!, range!!.start, range!!.end)
-            override fun raw(span: TextAndPosSpan): String = span.raw
-            override fun start(span: TextAndPosSpan): Pos = span.start
-            override fun end(span: TextAndPosSpan): Pos = span.end
-            override fun combine(left: TextAndPosSpan, right: TextAndPosSpan): TextAndPosSpan {
-                require(left.end == right.start) { "Non-contiguous spans: ${left.end} vs ${right.start}" }
-                return TextAndPosSpan(left.raw + right.raw, left.start, right.end)
+        val spanLike =
+            object : SpanLike<TextAndPosSpan> {
+                override val hasRawText: Boolean = true
+                override val hasAbsolutePositions: Boolean = true
+                override val hasTextMetrics: Boolean = false
+
+                override fun make(
+                    raw: String?,
+                    range: PosRange?,
+                    metrics: TextSpanMetrics?,
+                ): TextAndPosSpan = TextAndPosSpan(raw!!, range!!.start, range!!.end)
+
+                override fun raw(span: TextAndPosSpan): String = span.raw
+
+                override fun start(span: TextAndPosSpan): Pos = span.start
+
+                override fun end(span: TextAndPosSpan): Pos = span.end
+
+                override fun combine(left: TextAndPosSpan, right: TextAndPosSpan): TextAndPosSpan {
+                    require(left.end == right.start) {
+                        "Non-contiguous spans: ${left.end} vs ${right.start}"
+                    }
+                    return TextAndPosSpan(left.raw + right.raw, left.start, right.end)
+                }
             }
-        }
     }
 }
 
-//sealed class Chars {
+// sealed class Chars {
 //    abstract operator fun get(index: Int): Char
 //    abstract fun length(): Int
 //
@@ -195,15 +246,15 @@ interface SpanLike<Span> : SpanFactory<Span>, SpanAccess<Span> {
 //        override operator fun get(index: Int): Char = string[index]
 //        override fun length(): Int = string.length
 //    }
-//}
+// }
 
-//interface ChunkSource<A> {
+// interface ChunkSource<A> {
 //    fun fetch(): Chunk<A>?
-//}
+// }
 //
-//interface AsyncChunkSource<A> {
+// interface AsyncChunkSource<A> {
 //    suspend fun fetch(): Chunk<A>?
-//}
+// }
 
 sealed class CharInput<out Span> {
     abstract val index: Long
@@ -212,22 +263,29 @@ sealed class CharInput<out Span> {
     abstract val current: Char
 
     abstract fun advance(): Unit
+
     /** Try to guarantee at least n chars of lookahead; false means EOF or cannot fill */
     abstract fun ensure(n: Int): Boolean
+
     abstract fun peek(index: Int): Char
+
     abstract fun peekN(index: Int, len: Int): String?
 
     interface Mark
+
     abstract fun mark(): Mark
+
     abstract fun reset(mark: Mark): Unit
+
     abstract fun capture(mark: Mark): Span
+
     abstract fun capture(): Span
 
     abstract fun close()
 
     fun pos(): Pos = Pos(line, column, index)
 
-    fun advanceN(len: Int): Unit {
+    fun advanceN(len: Int) {
         for (i in 0 until len) advance()
     }
 
@@ -301,12 +359,12 @@ sealed class CharInput<out Span> {
         try {
             val r = block(m)
             if (r != null) {
-                committed = true  // keep progress
+                committed = true // keep progress
                 return r
             }
             return null
         } finally {
-            if (!committed) reset(m)  // only rewind on failure
+            if (!committed) reset(m) // only rewind on failure
         }
     }
 
@@ -325,17 +383,30 @@ sealed class CharInput<out Span> {
             require(!EOB.isISOControl())
         }
 
-        fun withEmptySpans(input: String): CharInput<EmptySpan> = InMemoryCharInput(input, EmptySpan.spanLike)
-        fun withPosOnlySpans(input: String): CharInput<PosOnlySpan> = InMemoryCharInput(input, PosOnlySpan.spanLike)
-        fun withTextOnlySpans(input: String): CharInput<TextOnlySpan> = InMemoryCharInput(input, TextOnlySpan.spanLike)
-        fun withTextAndPosSpans(input: String): CharInput<TextAndPosSpan> = InMemoryCharInput(input, TextAndPosSpan.spanLike)
+        fun withEmptySpans(input: String): CharInput<EmptySpan> =
+            InMemoryCharInput(input, EmptySpan.spanLike)
+
+        fun withPosOnlySpans(input: String): CharInput<PosOnlySpan> =
+            InMemoryCharInput(input, PosOnlySpan.spanLike)
+
+        fun withTextOnlySpans(input: String): CharInput<TextOnlySpan> =
+            InMemoryCharInput(input, TextOnlySpan.spanLike)
+
+        fun withTextAndPosSpans(input: String): CharInput<TextAndPosSpan> =
+            InMemoryCharInput(input, TextAndPosSpan.spanLike)
 
         // New factories
-        fun <S> ring(reader: Reader, spanFactory: SpanFactory<S>, capacity: Int = 64 * 1024): CharInput<S> =
-            RingBufferCharInput(reader, spanFactory, capacity)
+        fun <S> ring(
+            reader: Reader,
+            spanFactory: SpanFactory<S>,
+            capacity: Int = 64 * 1024,
+        ): CharInput<S> = RingBufferCharInput(reader, spanFactory, capacity)
 
-        fun <S> streaming(reader: Reader, spanFactory: SpanFactory<S>, capacity: Int = 64 * 1024): CharInput<S> =
-            StreamingCharInput(reader, spanFactory, capacity)
+        fun <S> streaming(
+            reader: Reader,
+            spanFactory: SpanFactory<S>,
+            capacity: Int = 64 * 1024,
+        ): CharInput<S> = StreamingCharInput(reader, spanFactory, capacity)
 
         fun <S> seekable(
             channel: FileChannel,
@@ -344,8 +415,16 @@ sealed class CharInput<out Span> {
             charCapacity: Int = 64 * 1024,
             byteBufferSize: Int = 64 * 1024,
             checkpointChars: Long = 1_000_000L,
-            checkpointBytes: Long = 1_000_000L
+            checkpointBytes: Long = 1_000_000L,
         ): CharInput<S> =
-            SeekableFileCharInput(channel, charset, spanFactory, charCapacity, byteBufferSize, checkpointChars, checkpointBytes)
+            SeekableFileCharInput(
+                channel,
+                charset,
+                spanFactory,
+                charCapacity,
+                byteBufferSize,
+                checkpointChars,
+                checkpointBytes,
+            )
     }
 }

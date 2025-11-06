@@ -5,7 +5,6 @@ import java.nio.CharBuffer
 import java.nio.channels.FileChannel
 import java.nio.charset.Charset
 import java.nio.charset.CharsetDecoder
-import java.nio.charset.CoderResult
 import java.util.WeakHashMap
 
 /** Seekable file input with checkpoints (bytePos <-> charAbs). */
@@ -16,13 +15,13 @@ class SeekableFileCharInput<out Span>(
     private val charCapacity: Int = 64 * 1024,
     private val byteBufferSize: Int = 64 * 1024,
     private val checkpointChars: Long = 1_000_000L,
-    private val checkpointBytes: Long = 1_000_000L
+    private val checkpointBytes: Long = 1_000_000L,
 ) : CharInput<Span>(), AutoCloseable {
-
-    private val decoder: CharsetDecoder = charset
-        .newDecoder()
-        .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
-        .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
+    private val decoder: CharsetDecoder =
+        charset
+            .newDecoder()
+            .onMalformedInput(java.nio.charset.CodingErrorAction.REPORT)
+            .onUnmappableCharacter(java.nio.charset.CodingErrorAction.REPORT)
     private val byteBuf: ByteBuffer = ByteBuffer.allocate(byteBufferSize)
     private val buf: CharArray = CharArray(charCapacity)
 
@@ -41,18 +40,30 @@ class SeekableFileCharInput<out Span>(
 
     override var line: Long = 1L
     override var column: Long = 1L
-    override val index: Long get() = baseAbs + head
+    override val index: Long
+        get() = baseAbs + head
+
     override var current: Char = EOB
 
     private data class Mark(
-        val abs: Long, val line: Long, val col: Long,
-        val capAbs: Long, val capLine: Long, val capCol: Long
+        val abs: Long,
+        val line: Long,
+        val col: Long,
+        val capAbs: Long,
+        val capLine: Long,
+        val capCol: Long,
     ) : CharInput.Mark
 
     // Weak mark registry to protect compaction
     private val activeMarks: WeakHashMap<Mark, Long> = WeakHashMap()
 
-    private data class Checkpoint(val bytePos: Long, val charAbs: Long, val line: Long, val col: Long)
+    private data class Checkpoint(
+        val bytePos: Long,
+        val charAbs: Long,
+        val line: Long,
+        val col: Long,
+    )
+
     private val checkpoints = ArrayList<Checkpoint>()
     private var lastCheckpointCharAbs: Long = 0L
     private var lastCheckpointBytePos: Long = 0L
@@ -60,7 +71,6 @@ class SeekableFileCharInput<out Span>(
     private var lastCapAbs: Long = 0L
     private var lastCapLine: Long = 1L
     private var lastCapCol: Long = 1L
-
 
     init {
         byteBuf.limit(0) // empty buffer to begin with
@@ -154,8 +164,10 @@ class SeekableFileCharInput<out Span>(
     private fun maybeCheckpoint() {
         val charAbsNow = baseAbs + tail
         val bytePosNow = consumedBytePos()
-        if (charAbsNow - lastCheckpointCharAbs >= checkpointChars ||
-            bytePosNow - lastCheckpointBytePos >= checkpointBytes) {
+        if (
+            charAbsNow - lastCheckpointCharAbs >= checkpointChars ||
+                bytePosNow - lastCheckpointBytePos >= checkpointBytes
+        ) {
             checkpoints.add(Checkpoint(bytePosNow, charAbsNow, tailLine, tailCol))
             lastCheckpointCharAbs = charAbsNow
             lastCheckpointBytePos = bytePosNow
@@ -184,17 +196,34 @@ class SeekableFileCharInput<out Span>(
 
     override fun advance() {
         ensure(1)
-        if (head >= tail) { current = EOB; return }
+        if (head >= tail) {
+            current = EOB
+            return
+        }
         val c = buf[head++]
         // PEEK next char without consuming more:
-        val next = if (head < tail) buf[head] else { ensure(1); if (head < tail) buf[head] else EOB }
+        val next =
+            if (head < tail) {
+                buf[head]
+            } else {
+                ensure(1)
+                if (head < tail) buf[head] else EOB
+            }
 
         if (c == '\n' || (c == '\r' && next != '\n')) {
-            line += 1; column = 1
+            line += 1
+            column = 1
         } else {
             column += 1
         }
-        current = if (head < tail) buf[head] else if (ensure(1) && head < tail) buf[head] else EOB
+        current =
+            if (head < tail) {
+                buf[head]
+            } else if (ensure(1) && head < tail) {
+                buf[head]
+            } else {
+                EOB
+            }
     }
 
     override fun peek(index: Int): Char {
@@ -228,15 +257,26 @@ class SeekableFileCharInput<out Span>(
             lastCapAbs = mark.capAbs
             lastCapLine = mark.capLine
             lastCapCol = mark.capCol
-            current = if (head < tail) buf[head] else if (ensure(1) && head < tail) buf[head] else EOB
+            current =
+                if (head < tail) {
+                    buf[head]
+                } else if (ensure(1) && head < tail) {
+                    buf[head]
+                } else {
+                    EOB
+                }
             return
         }
         // Outside current window: rebuild from nearest checkpoint ≤ mark.abs
-        val idx = checkpoints.binarySearchBy(mark.abs) { it.charAbs }.let { if (it >= 0) it else (-it - 2).coerceAtLeast(0) }
+        val idx =
+            checkpoints
+                .binarySearchBy(mark.abs) { it.charAbs }
+                .let { if (it >= 0) it else (-it - 2).coerceAtLeast(0) }
         val cp = checkpoints[idx]
         // Reset decoder and byte buffer
         decoder.reset()
-        byteBuf.clear(); byteBuf.limit(0)
+        byteBuf.clear()
+        byteBuf.limit(0)
         channel.position(cp.bytePos)
         fileStartPos = cp.bytePos
         bytesReadTotal = 0
@@ -259,11 +299,29 @@ class SeekableFileCharInput<out Span>(
         var remain = (mark.abs - baseAbs).toInt()
         while (remain > 0) {
             val c = buf[head++]
-            val next = if (head < tail) buf[head] else { ensure(1); if (head < tail) buf[head] else EOB }
-            if (c == '\n' || (c == '\r' && next != '\n')) { line += 1; column = 1 } else { column += 1 }
+            val next =
+                if (head < tail) {
+                    buf[head]
+                } else {
+                    ensure(1)
+                    if (head < tail) buf[head] else EOB
+                }
+            if (c == '\n' || (c == '\r' && next != '\n')) {
+                line += 1
+                column = 1
+            } else {
+                column += 1
+            }
             remain--
         }
-        current = if (head < tail) buf[head] else if (ensure(1) && head < tail) buf[head] else EOB
+        current =
+            if (head < tail) {
+                buf[head]
+            } else if (ensure(1) && head < tail) {
+                buf[head]
+            } else {
+                EOB
+            }
 
         lastCapAbs = mark.capAbs
         lastCapLine = mark.capLine
@@ -288,17 +346,26 @@ class SeekableFileCharInput<out Span>(
         mark as Mark
         val startAbs = mark.abs
         val endAbs = index
-        // If start outside window, we must reconstruct from disk: for simplicity, forbid capturing expired mark
-        require(startAbs >= baseAbs) { "Mark expired (outside buffer); for huge captures, use capture() streaming mode or increase capacity/checkpoints." }
+        // If start outside window, we must reconstruct from disk: for simplicity, forbid capturing
+        // expired mark
+        require(startAbs >= baseAbs) {
+            "Mark expired (outside buffer); for huge captures, use capture() streaming mode or increase capacity/checkpoints."
+        }
         val startRel = (startAbs - baseAbs).toInt()
         val endRel = (endAbs - baseAbs).toInt()
         val raw = if (spanFactory.hasRawText) buildString(startAbs, endAbs) else null
-        val metrics = if (spanFactory.hasTextMetrics)
-            (raw?.let { TextSpanMetrics.of(it) } ?: TextSpanMetrics.of(buf, startRel, endRel))
-        else null
-        val range = if (spanFactory.hasAbsolutePositions)
-            PosRange(Pos(mark.line, mark.col, startAbs), Pos(line, column, endAbs))
-        else null
+        val metrics =
+            if (spanFactory.hasTextMetrics) {
+                (raw?.let { TextSpanMetrics.of(it) } ?: TextSpanMetrics.of(buf, startRel, endRel))
+            } else {
+                null
+            }
+        val range =
+            if (spanFactory.hasAbsolutePositions) {
+                PosRange(Pos(mark.line, mark.col, startAbs), Pos(line, column, endAbs))
+            } else {
+                null
+            }
         activeMarks.remove(mark)
         return spanFactory.make(raw, range, metrics)
     }
@@ -307,10 +374,15 @@ class SeekableFileCharInput<out Span>(
         val startAbs = lastCapAbs
         val endAbs = index
         val raw = if (spanFactory.hasRawText) buildString(startAbs, endAbs) else null
-        val metrics = if (spanFactory.hasTextMetrics) TextSpanMetrics.of(raw ?: buildString(startAbs, endAbs)) else null
-        val range = if (spanFactory.hasAbsolutePositions)
-            PosRange(Pos(lastCapLine, lastCapCol, startAbs), Pos(line, column, endAbs))
-        else null
+        val metrics =
+            if (spanFactory.hasTextMetrics) TextSpanMetrics.of(raw ?: buildString(startAbs, endAbs))
+            else null
+        val range =
+            if (spanFactory.hasAbsolutePositions) {
+                PosRange(Pos(lastCapLine, lastCapCol, startAbs), Pos(line, column, endAbs))
+            } else {
+                null
+            }
         val s = spanFactory.make(raw, range, metrics)
         lastCapAbs = endAbs
         lastCapLine = line

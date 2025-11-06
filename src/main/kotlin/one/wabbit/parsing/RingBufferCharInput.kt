@@ -7,26 +7,31 @@ import java.util.WeakHashMap
 class RingBufferCharInput<out Span>(
     private val reader: Reader,
     private val spanFactory: SpanFactory<Span>,
-    private val capacity: Int = 64 * 1024
+    private val capacity: Int = 64 * 1024,
 ) : CharInput<Span>(), AutoCloseable {
-
     private val buf = CharArray(capacity)
-    private var baseAbs: Long = 0L  // absolute offset of buf[0]
-    private var head: Int = 0       // read cursor
-    private var tail: Int = 0       // write cursor (exclusive)
+    private var baseAbs: Long = 0L // absolute offset of buf[0]
+    private var head: Int = 0 // read cursor
+    private var tail: Int = 0 // write cursor (exclusive)
     private var eofSeen = false
 
     override var line: Long = 1L
     override var column: Long = 1L
-    override val index: Long get() = baseAbs + head
+    override val index: Long
+        get() = baseAbs + head
+
     override var current: Char = EOB
 
     // Weakly track active marks so compaction doesn't drop their region
     private val activeMarks: WeakHashMap<Mark, Long> = WeakHashMap()
 
     private data class Mark(
-        val abs: Long, val line: Long, val col: Long,
-        val capAbs: Long, val capLine: Long, val capCol: Long
+        val abs: Long,
+        val line: Long,
+        val col: Long,
+        val capAbs: Long,
+        val capLine: Long,
+        val capCol: Long,
     ) : CharInput.Mark
 
     private var lastCapAbs: Long = 0L
@@ -48,7 +53,10 @@ class RingBufferCharInput<out Span>(
             val space = capacity - tail
             if (space == 0) break
             val read = reader.read(buf, tail, space)
-            if (read < 0) { eofSeen = true; break }
+            if (read < 0) {
+                eofSeen = true
+                break
+            }
             if (read == 0) break
             tail += read
         }
@@ -78,17 +86,34 @@ class RingBufferCharInput<out Span>(
 
     override fun advance() {
         ensure(1)
-        if (head >= tail) { current = EOB; return }
+        if (head >= tail) {
+            current = EOB
+            return
+        }
         val c = buf[head++]
         // PEEK next char without consuming more:
-        val next = if (head < tail) buf[head] else { ensure(1); if (head < tail) buf[head] else EOB }
+        val next =
+            if (head < tail) {
+                buf[head]
+            } else {
+                ensure(1)
+                if (head < tail) buf[head] else EOB
+            }
 
         if (c == '\n' || (c == '\r' && next != '\n')) {
-            line += 1; column = 1
+            line += 1
+            column = 1
         } else {
             column += 1
         }
-        current = if (head < tail) buf[head] else if (ensure(1) && head < tail) buf[head] else EOB
+        current =
+            if (head < tail) {
+                buf[head]
+            } else if (ensure(1) && head < tail) {
+                buf[head]
+            } else {
+                EOB
+            }
     }
 
     override fun peek(index: Int): Char {
@@ -121,7 +146,14 @@ class RingBufferCharInput<out Span>(
         lastCapAbs = mark.capAbs
         lastCapLine = mark.capLine
         lastCapCol = mark.capCol
-        current = if (head < tail) buf[head] else if (ensure(1) && head < tail) buf[head] else EOB
+        current =
+            if (head < tail) {
+                buf[head]
+            } else if (ensure(1) && head < tail) {
+                buf[head]
+            } else {
+                EOB
+            }
     }
 
     private fun buildString(startAbs: Long, endAbs: Long): String {
@@ -146,12 +178,18 @@ class RingBufferCharInput<out Span>(
         val startRel = (startAbs - baseAbs).toInt()
         val endRel = (endAbs - baseAbs).toInt()
         val raw = if (spanFactory.hasRawText) buildString(startAbs, endAbs) else null
-        val metrics = if (spanFactory.hasTextMetrics)
-            (raw?.let { TextSpanMetrics.of(it) } ?: TextSpanMetrics.of(buf, startRel, endRel))
-        else null
-        val range = if (spanFactory.hasAbsolutePositions)
-            PosRange(Pos(mark.line, mark.col, startAbs), Pos(line, column, endAbs))
-        else null
+        val metrics =
+            if (spanFactory.hasTextMetrics) {
+                (raw?.let { TextSpanMetrics.of(it) } ?: TextSpanMetrics.of(buf, startRel, endRel))
+            } else {
+                null
+            }
+        val range =
+            if (spanFactory.hasAbsolutePositions) {
+                PosRange(Pos(mark.line, mark.col, startAbs), Pos(line, column, endAbs))
+            } else {
+                null
+            }
         activeMarks.remove(mark) // mark no longer needed
         return spanFactory.make(raw, range, metrics)
     }
@@ -160,10 +198,15 @@ class RingBufferCharInput<out Span>(
         val startAbs = lastCapAbs
         val endAbs = index
         val raw = if (spanFactory.hasRawText) buildString(startAbs, endAbs) else null
-        val metrics = if (spanFactory.hasTextMetrics) TextSpanMetrics.of(raw ?: buildString(startAbs, endAbs)) else null
-        val range = if (spanFactory.hasAbsolutePositions)
-            PosRange(Pos(lastCapLine, lastCapCol, startAbs), Pos(line, column, endAbs))
-        else null
+        val metrics =
+            if (spanFactory.hasTextMetrics) TextSpanMetrics.of(raw ?: buildString(startAbs, endAbs))
+            else null
+        val range =
+            if (spanFactory.hasAbsolutePositions) {
+                PosRange(Pos(lastCapLine, lastCapCol, startAbs), Pos(line, column, endAbs))
+            } else {
+                null
+            }
         val s = spanFactory.make(raw, range, metrics)
         lastCapAbs = endAbs
         lastCapLine = line

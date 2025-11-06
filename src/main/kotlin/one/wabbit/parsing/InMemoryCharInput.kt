@@ -1,6 +1,7 @@
 package one.wabbit.parsing
 
-class InMemoryCharInput<out Span>(val input: String, private val spanFactory: SpanFactory<Span>) : CharInput<Span>() {
+class InMemoryCharInput<out Span>(val input: String, private val spanFactory: SpanFactory<Span>) :
+    CharInput<Span>() {
     private val length = input.length.toLong()
     override var index: Long = 0L
     override var line: Long = 1L
@@ -11,8 +12,11 @@ class InMemoryCharInput<out Span>(val input: String, private val spanFactory: Sp
     }
 
     override var current: Char =
-        if (input.isNotEmpty()) input[0]
-        else EOB
+        if (input.isNotEmpty()) {
+            input[0]
+        } else {
+            EOB
+        }
 
     override fun ensure(n: Int): Boolean {
         if (n <= 0) return true
@@ -20,8 +24,11 @@ class InMemoryCharInput<out Span>(val input: String, private val spanFactory: Sp
     }
 
     override fun peek(index: Int): Char =
-        if (this.index + index < length) input[(this.index + index).toInt()]
-        else EOB
+        if (this.index + index < length) {
+            input[(this.index + index).toInt()]
+        } else {
+            EOB
+        }
 
     override fun peekN(index: Int, len: Int): String? {
         val startIndex = this.index + index
@@ -30,19 +37,12 @@ class InMemoryCharInput<out Span>(val input: String, private val spanFactory: Sp
         return input.substring(startIndex.toInt(), endIndex.toInt())
     }
 
-    private class Mark(
-        val markIndex: Long,
-        val markedLine: Long,
-        val markedColumn: Long
-    ) : CharInput.Mark {
-        override fun toString(): String {
-            return "Mark($markIndex, $markedLine, $markedColumn)"
-        }
+    private class Mark(val markIndex: Long, val markedLine: Long, val markedColumn: Long) :
+        CharInput.Mark {
+        override fun toString(): String = "Mark($markIndex, $markedLine, $markedColumn)"
     }
 
-    override fun mark(): CharInput.Mark {
-        return Mark(index, line, column)
-    }
+    override fun mark(): CharInput.Mark = Mark(index, line, column)
 
     override fun reset(mark: CharInput.Mark) {
         mark as Mark
@@ -54,18 +54,26 @@ class InMemoryCharInput<out Span>(val input: String, private val spanFactory: Sp
 
     override fun capture(mark: CharInput.Mark): Span {
         mark as Mark
-        val raw = if (spanFactory.hasRawText) input.substring(mark.markIndex.toInt(), index.toInt()) else null
+        val raw =
+            if (spanFactory.hasRawText) input.substring(mark.markIndex.toInt(), index.toInt())
+            else null
 
-        val range = if (spanFactory.hasAbsolutePositions) {
-            PosRange(
-            Pos(mark.markedLine, mark.markedColumn, mark.markIndex),
-                Pos(line, column, index)
-            )
-        } else null
+        val range =
+            if (spanFactory.hasAbsolutePositions) {
+                PosRange(
+                    Pos(mark.markedLine, mark.markedColumn, mark.markIndex),
+                    Pos(line, column, index),
+                )
+            } else {
+                null
+            }
 
-        val metrics = if (spanFactory.hasTextMetrics)
-            TextSpanMetrics.of(raw ?: input.substring(mark.markIndex.toInt(), index.toInt()))
-        else null
+        val metrics =
+            if (spanFactory.hasTextMetrics) {
+                TextSpanMetrics.of(raw ?: input.substring(mark.markIndex.toInt(), index.toInt()))
+            } else {
+                null
+            }
 
         val result = spanFactory.make(raw, range, metrics)
 
@@ -90,18 +98,22 @@ class InMemoryCharInput<out Span>(val input: String, private val spanFactory: Sp
     }
 
     override fun capture(): Span {
-        val raw = if (spanFactory.hasRawText) input.substring(markIndex.toInt(), index.toInt()) else null
+        val raw =
+            if (spanFactory.hasRawText) input.substring(markIndex.toInt(), index.toInt()) else null
 
-        val range = if (spanFactory.hasAbsolutePositions) {
-            PosRange(
-                Pos(markedLine, markedColumn, markIndex),
-                Pos(line, column, index)
-            )
-        } else null
+        val range =
+            if (spanFactory.hasAbsolutePositions) {
+                PosRange(Pos(markedLine, markedColumn, markIndex), Pos(line, column, index))
+            } else {
+                null
+            }
 
-        val metrics = if (spanFactory.hasTextMetrics)
-            TextSpanMetrics.of(raw ?: input.substring(markIndex.toInt(), index.toInt()))
-        else null
+        val metrics =
+            if (spanFactory.hasTextMetrics) {
+                TextSpanMetrics.of(raw ?: input.substring(markIndex.toInt(), index.toInt()))
+            } else {
+                null
+            }
 
         val result = spanFactory.make(raw, range, metrics)
 
