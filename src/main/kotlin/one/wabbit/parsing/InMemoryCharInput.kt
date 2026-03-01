@@ -39,6 +39,8 @@ class InMemoryCharInput<out Span>(val input: String, private val spanFactory: Sp
 
     private class Mark(val markIndex: Long, val markedLine: Long, val markedColumn: Long) :
         CharInput.Mark {
+        override val pos: Pos
+            get() = Pos(markedLine, markedColumn, markIndex)
         override fun toString(): String = "Mark($markIndex, $markedLine, $markedColumn)"
     }
 

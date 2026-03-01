@@ -52,7 +52,10 @@ class SeekableFileCharInput<out Span>(
         val capAbs: Long,
         val capLine: Long,
         val capCol: Long,
-    ) : CharInput.Mark
+    ) : CharInput.Mark {
+        override val pos: Pos
+            get() = Pos(line, col, abs)
+    }
 
     // Weak mark registry to protect compaction
     private val activeMarks: WeakHashMap<Mark, Long> = WeakHashMap()

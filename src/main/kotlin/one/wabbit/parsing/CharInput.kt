@@ -271,7 +271,9 @@ sealed class CharInput<out Span> {
 
     abstract fun peekN(index: Int, len: Int): String?
 
-    interface Mark
+    interface Mark {
+        val pos: Pos
+    }
 
     abstract fun mark(): Mark
 

@@ -32,7 +32,10 @@ class RingBufferCharInput<out Span>(
         val capAbs: Long,
         val capLine: Long,
         val capCol: Long,
-    ) : CharInput.Mark
+    ) : CharInput.Mark {
+        override val pos: Pos
+            get() = Pos(line, col, abs)
+    }
 
     private var lastCapAbs: Long = 0L
     private var lastCapLine: Long = 1L

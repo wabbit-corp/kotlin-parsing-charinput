@@ -29,7 +29,10 @@ class StreamingCharInput<out Span>(
         val capAbs: Long,
         val capLine: Long,
         val capCol: Long,
-    ) : CharInput.Mark
+    ) : CharInput.Mark {
+        override val pos: Pos
+            get() = Pos(line, col, abs)
+    }
 
     // Only keep weak references to not block compaction too long if someone forgets to release.
     private val activeMarks: WeakHashMap<Mark, Long> = WeakHashMap()
