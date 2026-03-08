@@ -2,28 +2,45 @@ package one.wabbit.parsing
 
 import kotlin.test.Test
 import kotlin.test.assertEquals
-import one.wabbit.random.gen.Gen
 
 class TextSpanMetricsTests {
     @Test
     fun testMonoidLaws() {
         val m = TextSpanMetrics
+        val samples =
+            listOf(
+                "",
+                "a",
+                "abc",
+                "\n",
+                "\r",
+                "\r\n",
+                "line1\nline2",
+                "line1\rline2",
+                "line1\r\nline2",
+            )
 
         // Monoid identity
-        Gen.foreach(Gen.string) { a ->
+        for (a in samples) {
             assertEquals(m.of(a), m.zero + m.of(a))
             assertEquals(m.of(a), m.of(a) + m.zero)
         }
 
         // Monoid associativity
-        Gen.foreach(Gen.string, Gen.string, Gen.string) { a, b, c ->
-            assertEquals(m.of(a) + (m.of(b) + m.of(c)), (m.of(a) + m.of(b)) + m.of(c))
+        for (a in samples) {
+            for (b in samples) {
+                for (c in samples) {
+                    assertEquals(m.of(a) + (m.of(b) + m.of(c)), (m.of(a) + m.of(b)) + m.of(c))
+                }
+            }
         }
 
         // Monoid homomorphism
-        Gen.foreach(Gen.string, Gen.string) { a, b ->
-            val ab = a + b
-            assertEquals(m.of(ab), m.of(a) + m.of(b))
+        for (a in samples) {
+            for (b in samples) {
+                val ab = a + b
+                assertEquals(m.of(ab), m.of(a) + m.of(b))
+            }
         }
 
         // Corner cases:

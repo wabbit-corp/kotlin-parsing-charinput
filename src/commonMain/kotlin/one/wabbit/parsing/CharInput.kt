@@ -1,8 +1,5 @@
 package one.wabbit.parsing
 
-import java.io.Reader
-import java.nio.channels.FileChannel
-import java.nio.charset.Charset
 import kotlin.contracts.ExperimentalContracts
 import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
@@ -256,7 +253,7 @@ data class TextAndPosSpan(
 //    suspend fun fetch(): Chunk<A>?
 // }
 
-sealed class CharInput<out Span> {
+abstract class CharInput<out Span> {
     abstract val index: Long
     abstract val line: Long
     abstract val column: Long
@@ -397,29 +394,28 @@ sealed class CharInput<out Span> {
         fun withTextAndPosSpans(input: String): CharInput<TextAndPosSpan> =
             InMemoryCharInput(input, TextAndPosSpan.spanLike)
 
-        // New factories
+        // JVM/Android-only stream/file factories; non-JVM actuals throw.
         fun <S> ring(
-            reader: Reader,
+            reader: Any,
             spanFactory: SpanFactory<S>,
             capacity: Int = 64 * 1024,
-        ): CharInput<S> = RingBufferCharInput(reader, spanFactory, capacity)
+        ): CharInput<S> = ringCharInput(reader, spanFactory, capacity)
 
         fun <S> streaming(
-            reader: Reader,
+            reader: Any,
             spanFactory: SpanFactory<S>,
             capacity: Int = 64 * 1024,
-        ): CharInput<S> = StreamingCharInput(reader, spanFactory, capacity)
+        ): CharInput<S> = streamingCharInput(reader, spanFactory, capacity)
 
         fun <S> seekable(
-            channel: FileChannel,
-            charset: Charset,
+            channel: Any,
+            charset: Any,
             spanFactory: SpanFactory<S>,
             charCapacity: Int = 64 * 1024,
             byteBufferSize: Int = 64 * 1024,
             checkpointChars: Long = 1_000_000L,
             checkpointBytes: Long = 1_000_000L,
-        ): CharInput<S> =
-            SeekableFileCharInput(
+        ): CharInput<S> = seekableCharInput(
                 channel,
                 charset,
                 spanFactory,
@@ -430,3 +426,25 @@ sealed class CharInput<out Span> {
             )
     }
 }
+
+internal expect fun <S> ringCharInput(
+    reader: Any,
+    spanFactory: SpanFactory<S>,
+    capacity: Int = 64 * 1024,
+): CharInput<S>
+
+internal expect fun <S> streamingCharInput(
+    reader: Any,
+    spanFactory: SpanFactory<S>,
+    capacity: Int = 64 * 1024,
+): CharInput<S>
+
+internal expect fun <S> seekableCharInput(
+    channel: Any,
+    charset: Any,
+    spanFactory: SpanFactory<S>,
+    charCapacity: Int = 64 * 1024,
+    byteBufferSize: Int = 64 * 1024,
+    checkpointChars: Long = 1_000_000L,
+    checkpointBytes: Long = 1_000_000L,
+): CharInput<S>

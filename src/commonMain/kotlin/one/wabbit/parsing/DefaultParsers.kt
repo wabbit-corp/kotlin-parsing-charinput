@@ -310,7 +310,14 @@ object DefaultParsers {
         fun appendCodePoint(sb: StringBuilder, codepoint: Int) {
             require(codepoint in 0..0x10FFFF) { "Code point out of range: $codepoint" }
             require(codepoint !in 0xD800..0xDFFF) { "Invalid surrogate code point: $codepoint" }
-            sb.append(Character.toChars(codepoint))
+            if (codepoint <= 0xFFFF) {
+                sb.append(codepoint.toChar())
+            } else {
+                val high = ((codepoint - 0x10000) shr 10) + 0xD800
+                val low = ((codepoint - 0x10000) and 0x3FF) + 0xDC00
+                sb.append(high.toChar())
+                sb.append(low.toChar())
+            }
         }
 
         // Choose quote
