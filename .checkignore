@@ -1,0 +1,3 @@
+# Repo-local check suppressions for generated assets and host-native target naming.
+check:ignore E_DUPLICATE_FILE .banner.png
+check:ignore E_KMP_AMBIGUOUS_NATIVE_NAME src/hostNativeMain
