@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package one.wabbit.parsing
 
 import kotlinx.serialization.Serializable
@@ -6,14 +8,14 @@ import kotlinx.serialization.Serializable
  * Line-oriented metrics for a captured text span.
  *
  * The metrics support constant-time concatenation through [plus]. Newlines are counted as logical
- * line breaks, with CRLF treated as one newline when both characters are inside the measured text or
- * across a concatenation boundary.
+ * line breaks, with CRLF treated as one newline when both characters are inside the measured text
+ * or across a concatenation boundary.
  *
  * @property length number of characters in the measured text.
  * @property newlineCount number of logical line breaks.
  * @property firstLineLen number of characters before the first logical line break.
  * @property lastLineLen number of characters after the last logical line break, or zero when the
- * text ends with a newline.
+ *   text ends with a newline.
  * @property endsWithNewline whether the text ends with CR or LF.
  * @property startsWithLF whether the text starts with LF, used to merge a preceding CR boundary.
  * @property endsWithCR whether the text ends with CR, used to merge a following LF boundary.
@@ -58,9 +60,7 @@ data class TextSpanMetrics(
     }
 
     companion object {
-        /**
-         * Metrics for an empty span.
-         */
+        /** Metrics for an empty span. */
         val zero = TextSpanMetrics(0, 0, 0, 0, false, false, false)
 
         /**
@@ -171,8 +171,8 @@ data class TextSpanMetrics(
     /**
      * Concatenate metrics for adjacent text spans in constant time.
      *
-     * If this span ends with CR and [b] starts with LF, the boundary is counted as one CRLF
-     * newline rather than two line breaks.
+     * If this span ends with CR and [b] starts with LF, the boundary is counted as one CRLF newline
+     * rather than two line breaks.
      */
     operator fun plus(b: TextSpanMetrics): TextSpanMetrics {
         val a = this

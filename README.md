@@ -1,5 +1,12 @@
 # kotlin-parsing-charinput
 
+![](./.meta/github-project-banner.png)
+
+<p align=center>
+    <img src="https://img.shields.io/maven-central/v/one.wabbit/kotlin-parsing-charinput" alt="Maven Central">
+    <img src="https://img.shields.io/badge/Kotlin-Multiplatform-7F52FF" alt="Kotlin Multiplatform">
+</p>
+
 `kotlin-parsing-charinput` is a Kotlin Multiplatform library for cursor-based character input in
 parsers.
 
@@ -20,7 +27,7 @@ Parser code often needs the same low-level operations:
 `kotlin-parsing-charinput` keeps those concerns in one small API so higher-level parsers can focus
 on grammar rules instead of cursor bookkeeping.
 
-## Installation
+## 🚀 Installation
 
 ```kotlin
 repositories {
@@ -32,7 +39,7 @@ dependencies {
 }
 ```
 
-## Quick Start
+## 🚀 Usage
 
 ```kotlin
 import one.wabbit.parsing.CharInput

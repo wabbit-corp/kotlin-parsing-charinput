@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package one.wabbit.parsing
 
 import java.io.Reader
@@ -6,8 +8,9 @@ import java.util.WeakHashMap
 /**
  * [CharInput] backed by a bounded ring buffer over a [Reader].
  *
- * Active marks and the implicit capture boundary protect buffered regions from compaction. Resetting
- * or capturing from a mark whose region has been compacted fails with `IllegalArgumentException`.
+ * Active marks and the implicit capture boundary protect buffered regions from compaction.
+ * Resetting or capturing from a mark whose region has been compacted fails with
+ * `IllegalArgumentException`.
  *
  * @param Span span type produced by captures.
  * @param reader source reader; closed by [close].
@@ -227,9 +230,7 @@ class RingBufferCharInput<out Span>(
         return s
     }
 
-    /**
-     * Return a short diagnostic view around the current cursor.
-     */
+    /** Return a short diagnostic view around the current cursor. */
     override fun toString(): String {
         val idx = head
         var s = (idx - 1).coerceAtLeast(0)

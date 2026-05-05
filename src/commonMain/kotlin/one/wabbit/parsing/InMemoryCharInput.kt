@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package one.wabbit.parsing
 
 /**
@@ -51,6 +53,7 @@ class InMemoryCharInput<out Span>(val input: String, private val spanFactory: Sp
         CharInput.Mark {
         override val pos: Pos
             get() = Pos(markedLine, markedColumn, markIndex)
+
         override fun toString(): String = "Mark($markIndex, $markedLine, $markedColumn)"
     }
 
@@ -136,9 +139,7 @@ class InMemoryCharInput<out Span>(val input: String, private val spanFactory: Sp
         return result
     }
 
-    /**
-     * Return a short diagnostic view around the current cursor.
-     */
+    /** Return a short diagnostic view around the current cursor. */
     override fun toString(): String {
         var start = (index - 1).coerceAtLeast(0)
         while (start > 0 && input[(start - 1).toInt()] != '\n' && start > index - 6) start--

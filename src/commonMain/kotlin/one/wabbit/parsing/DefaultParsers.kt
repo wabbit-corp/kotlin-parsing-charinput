@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 package one.wabbit.parsing
 
 import kotlinx.serialization.Serializable
@@ -12,34 +14,22 @@ import kotlinx.serialization.Serializable
  */
 @Serializable
 data class Spanned<out Span, out T>(val span: Span, val value: T) {
-    /**
-     * Replace [value] with [Unit] while keeping the original [span].
-     */
+    /** Replace [value] with [Unit] while keeping the original [span]. */
     fun void(): Spanned<Span, Unit> = Spanned(span, Unit)
 
-    /**
-     * Drop source-location data by replacing [span] with [EmptySpan].
-     */
+    /** Drop source-location data by replacing [span] with [EmptySpan]. */
     fun emptySpan(): Spanned<EmptySpan, T> = Spanned(EmptySpan, value)
 
-    /**
-     * Transform [value] while keeping the original [span].
-     */
+    /** Transform [value] while keeping the original [span]. */
     fun <R> map(mapper: (T) -> R): Spanned<Span, R> = Spanned(span, mapper(value))
 
-    /**
-     * Transform [span] while keeping the original [value].
-     */
+    /** Transform [span] while keeping the original [value]. */
     fun <R> mapSpan(mapper: (Span) -> R): Spanned<R, T> = Spanned(mapper(span), value)
 
-    /**
-     * Replace [value] while keeping the original [span].
-     */
+    /** Replace [value] while keeping the original [span]. */
     fun <U> replace(value: U): Spanned<Span, U> = Spanned(span, value)
 
-    /**
-     * Replace [span] while keeping the original [value].
-     */
+    /** Replace [span] while keeping the original [value]. */
     fun <U> replaceSpan(span: U): Spanned<U, T> = Spanned(span, value)
 }
 
@@ -48,16 +38,11 @@ data class Spanned<out Span, out T>(val span: Span, val value: T) {
  * ============================
  */
 
-/**
- * Unicode escape syntax accepted by [DefaultParsers.readString].
- */
+/** Unicode escape syntax accepted by [DefaultParsers.readString]. */
 @Serializable
 sealed interface UnicodeEscape {
-    /**
-     * Reject `\u` escapes unless the string style treats them as unknown escapes.
-     */
-    @Serializable
-    data object Disabled : UnicodeEscape
+    /** Reject `\u` escapes unless the string style treats them as unknown escapes. */
+    @Serializable data object Disabled : UnicodeEscape
 
     /**
      * Fixed-width `\uXXXX` escapes with exactly [digits] hexadecimal digits.
@@ -66,8 +51,7 @@ sealed interface UnicodeEscape {
      *
      * @property digits required number of hexadecimal digits.
      */
-    @Serializable
-    data class FixedWidth(val digits: Int = 4) : UnicodeEscape
+    @Serializable data class FixedWidth(val digits: Int = 4) : UnicodeEscape
 
     /**
      * Braced `\u{...}` escapes with [minDigits] to [maxDigits] hexadecimal digits.
@@ -77,13 +61,10 @@ sealed interface UnicodeEscape {
      * @property minDigits minimum number of hexadecimal digits required inside the braces.
      * @property maxDigits maximum number of hexadecimal digits allowed inside the braces.
      */
-    @Serializable
-    data class Braced(val minDigits: Int = 1, val maxDigits: Int = 6) : UnicodeEscape
+    @Serializable data class Braced(val minDigits: Int = 1, val maxDigits: Int = 6) : UnicodeEscape
 }
 
-/**
- * Policy for backslash escapes that are not listed in [StringStyle.escapes].
- */
+/** Policy for backslash escapes that are not listed in [StringStyle.escapes]. */
 @Serializable
 enum class UnknownEscapePolicy {
     /** Throw on any unknown escape. */
@@ -96,39 +77,25 @@ enum class UnknownEscapePolicy {
     DropBackslash,
 }
 
-/**
- * Configures [DefaultParsers.readString] quoting, escape, and newline behavior.
- */
+/** Configures [DefaultParsers.readString] quoting, escape, and newline behavior. */
 @Serializable
 sealed interface StringStyle {
-    /**
-     * Whether `'...'` string literals are accepted.
-     */
+    /** Whether `'...'` string literals are accepted. */
     val allowSingleQuotes: Boolean
 
-    /**
-     * Whether `"..."` string literals are accepted.
-     */
+    /** Whether `"..."` string literals are accepted. */
     val allowDoubleQuotes: Boolean
 
-    /**
-     * Whether raw CR or LF characters may appear before the closing quote.
-     */
+    /** Whether raw CR or LF characters may appear before the closing quote. */
     val allowMultiline: Boolean
 
-    /**
-     * Unicode escape syntax accepted after `\u`.
-     */
+    /** Unicode escape syntax accepted after `\u`. */
     val unicode: UnicodeEscape
 
-    /**
-     * Behavior for unknown backslash escapes.
-     */
+    /** Behavior for unknown backslash escapes. */
     val unknownEscape: UnknownEscapePolicy
 
-    /**
-     * Simple single-character escapes such as `n` to newline.
-     */
+    /** Simple single-character escapes such as `n` to newline. */
     val escapes: Map<Char, Char>
 
     // ---- Presets ----
@@ -198,9 +165,7 @@ sealed interface StringStyle {
         override val escapes: Map<Char, Char> = Json.escapes
     }
 
-    /**
-     * Java/C-style double-quoted string syntax with fixed-width Unicode escapes.
-     */
+    /** Java/C-style double-quoted string syntax with fixed-width Unicode escapes. */
     @Serializable
     data object JavaCStyle : StringStyle {
         // Classic Java/C escape set with \uXXXX; single quotes not for strings.
@@ -221,9 +186,7 @@ sealed interface StringStyle {
             )
     }
 
-    /**
-     * Rust-like double-quoted string syntax with braced Unicode escapes.
-     */
+    /** Rust-like double-quoted string syntax with braced Unicode escapes. */
     @Serializable
     data object RustLike : StringStyle {
         // Double quotes; \u{...}; conservative on unknown escapes.
@@ -242,9 +205,7 @@ sealed interface StringStyle {
  * ============================
  */
 
-/**
- * Policy for integer parts that begin with `0`.
- */
+/** Policy for integer parts that begin with `0`. */
 @Serializable
 enum class LeadingZeroPolicy {
     /** JSON-like: integer part is "0" or non-zero followed by digits; "012" is invalid. */
@@ -257,16 +218,11 @@ enum class LeadingZeroPolicy {
     Forbid,
 }
 
-/**
- * Exponent syntax accepted by [DefaultParsers.readNumber].
- */
+/** Exponent syntax accepted by [DefaultParsers.readNumber]. */
 @Serializable
 sealed interface ExponentPolicy {
-    /**
-     * Do not accept exponent suffixes.
-     */
-    @Serializable
-    data object Forbid : ExponentPolicy
+    /** Do not accept exponent suffixes. */
+    @Serializable data object Forbid : ExponentPolicy
 
     /**
      * Accept exponent suffixes using [letters].
@@ -279,9 +235,7 @@ sealed interface ExponentPolicy {
         ExponentPolicy
 }
 
-/**
- * Configures [DefaultParsers.readNumber] decimal-number grammar.
- */
+/** Configures [DefaultParsers.readNumber] decimal-number grammar. */
 @Serializable
 sealed interface NumberStyle {
     /**
@@ -306,17 +260,11 @@ sealed interface NumberStyle {
         val allowUnderscores: Boolean = false,
     ) : NumberStyle
 
-    /**
-     * Strict JSON number grammar.
-     */
-    @Serializable
-    data object Json : NumberStyle
+    /** Strict JSON number grammar. */
+    @Serializable data object Json : NumberStyle
 
-    /**
-     * Looser JavaScript/JSON5-like grammar with `+`, leading/trailing dots, and underscores.
-     */
-    @Serializable
-    data object Json5Like : NumberStyle
+    /** Looser JavaScript/JSON5-like grammar with `+`, leading/trailing dots, and underscores. */
+    @Serializable data object Json5Like : NumberStyle
 
     // A legacy shim is intentionally omitted; the old API remains as-is.
 }
@@ -349,9 +297,9 @@ internal fun NumberStyle.asDecimal(): NumberStyle.Decimal =
 /**
  * Small default token parsers for consumers that do not need a full parser-combinator framework.
  *
- * The functions operate directly on [CharInput], advance it on success, and return [Spanned]
- * values when they produce a token. They intentionally validate only their own token grammar; a
- * caller is responsible for checking delimiters and higher-level syntax.
+ * The functions operate directly on [CharInput], advance it on success, and return [Spanned] values
+ * when they produce a token. They intentionally validate only their own token grammar; a caller is
+ * responsible for checking delimiters and higher-level syntax.
  */
 object DefaultParsers {
     /**
@@ -391,9 +339,7 @@ object DefaultParsers {
         }
     }
 
-    /**
-     * Return whether [c] is a CR or LF line terminator.
-     */
+    /** Return whether [c] is a CR or LF line terminator. */
     fun isEol(c: Char): Boolean = (c == '\n' || c == '\r')
 
     /**
@@ -440,9 +386,9 @@ object DefaultParsers {
      * including the opening and closing quotes.
      *
      * @throws IllegalArgumentException when the opening quote is not allowed by [style], a
-     * malformed Unicode escape is found, or the produced code point is invalid.
+     *   malformed Unicode escape is found, or the produced code point is invalid.
      * @throws IllegalStateException when the literal is unterminated, contains an unexpected raw
-     * newline, or contains an unknown escape rejected by [style].
+     *   newline, or contains an unknown escape rejected by [style].
      */
     fun <Span> readString(input: CharInput<Span>, style: StringStyle): Spanned<Span, String> {
         fun Char.isHexDigit(): Boolean = this in '0'..'9' || this in 'a'..'f' || this in 'A'..'F'
@@ -739,27 +685,21 @@ object DefaultParsers {
      * Implementations usually throw a domain-specific parse error.
      */
     interface ParseNumberErrors<Span> {
-        /**
-         * Report that no digit followed an initial sign or integer position.
-         */
+        /** Report that no digit followed an initial sign or integer position. */
         fun nonDigitsFollowingMinus(input: CharInput<Span>, start: CharInput.Mark): Nothing
 
-        /**
-         * Report that no digit followed a decimal point.
-         */
+        /** Report that no digit followed a decimal point. */
         fun nonDigitsFollowingDot(input: CharInput<Span>, start: CharInput.Mark): Nothing
 
-        /**
-         * Report that no digit followed an exponent marker.
-         */
+        /** Report that no digit followed an exponent marker. */
         fun nonDigitsFollowingExp(input: CharInput<Span>, start: CharInput.Mark): Nothing
     }
 
     /**
      * Read a number using the original parser behavior and external error callbacks.
      *
-     * This overload is retained for source compatibility. New code should prefer
-     * [readNumber] with an explicit [NumberStyle].
+     * This overload is retained for source compatibility. New code should prefer [readNumber] with
+     * an explicit [NumberStyle].
      */
     fun <Span> readNumber(
         input: CharInput<Span>,
