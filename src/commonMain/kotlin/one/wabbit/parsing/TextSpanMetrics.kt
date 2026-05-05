@@ -2,6 +2,22 @@ package one.wabbit.parsing
 
 import kotlinx.serialization.Serializable
 
+/**
+ * Line-oriented metrics for a captured text span.
+ *
+ * The metrics support constant-time concatenation through [plus]. Newlines are counted as logical
+ * line breaks, with CRLF treated as one newline when both characters are inside the measured text or
+ * across a concatenation boundary.
+ *
+ * @property length number of characters in the measured text.
+ * @property newlineCount number of logical line breaks.
+ * @property firstLineLen number of characters before the first logical line break.
+ * @property lastLineLen number of characters after the last logical line break, or zero when the
+ * text ends with a newline.
+ * @property endsWithNewline whether the text ends with CR or LF.
+ * @property startsWithLF whether the text starts with LF, used to merge a preceding CR boundary.
+ * @property endsWithCR whether the text ends with CR, used to merge a following LF boundary.
+ */
 @Serializable
 data class TextSpanMetrics(
     val length: Long,
@@ -9,8 +25,8 @@ data class TextSpanMetrics(
     val firstLineLen: Long,
     val lastLineLen: Long,
     val endsWithNewline: Boolean,
-    val startsWithLF: Boolean, // s.isNotEmpty() && s[0] == '\n'
-    val endsWithCR: Boolean, // s.isNotEmpty() && s.last() == '\r'
+    val startsWithLF: Boolean,
+    val endsWithCR: Boolean,
 ) {
     init {
         require(length >= 0 && newlineCount >= 0 && firstLineLen >= 0 && lastLineLen >= 0)
@@ -42,8 +58,17 @@ data class TextSpanMetrics(
     }
 
     companion object {
+        /**
+         * Metrics for an empty span.
+         */
         val zero = TextSpanMetrics(0, 0, 0, 0, false, false, false)
 
+        /**
+         * Compute metrics for [s].
+         *
+         * CRLF is counted as one logical newline. Lone CR and lone LF are also counted as one
+         * logical newline.
+         */
         fun of(s: CharSequence): TextSpanMetrics {
             val length = s.length
             var newlineCount = 0
@@ -89,6 +114,13 @@ data class TextSpanMetrics(
             )
         }
 
+        /**
+         * Compute metrics for a slice of [buf].
+         *
+         * @param buf source character buffer.
+         * @param start inclusive slice start.
+         * @param endExclusive exclusive slice end.
+         */
         fun of(buf: CharArray, start: Int, endExclusive: Int): TextSpanMetrics {
             var newlineCount = 0
             var firstLineLen = endExclusive - start
@@ -136,7 +168,12 @@ data class TextSpanMetrics(
         }
     }
 
-    /** O(1) concatenation */
+    /**
+     * Concatenate metrics for adjacent text spans in constant time.
+     *
+     * If this span ends with CR and [b] starts with LF, the boundary is counted as one CRLF
+     * newline rather than two line breaks.
+     */
     operator fun plus(b: TextSpanMetrics): TextSpanMetrics {
         val a = this
         val length = a.length + b.length

@@ -1,5 +1,15 @@
 package one.wabbit.parsing
 
+/**
+ * [CharInput] backed by an in-memory [String].
+ *
+ * This implementation supports arbitrary marks and resets because the complete input remains
+ * available for the lifetime of the instance.
+ *
+ * @param Span span type produced by captures.
+ * @property input source text scanned by this input.
+ * @param spanFactory factory used to build captured spans.
+ */
 class InMemoryCharInput<out Span>(val input: String, private val spanFactory: SpanFactory<Span>) :
     CharInput<Span>() {
     private val length = input.length.toLong()
@@ -126,6 +136,9 @@ class InMemoryCharInput<out Span>(val input: String, private val spanFactory: Sp
         return result
     }
 
+    /**
+     * Return a short diagnostic view around the current cursor.
+     */
     override fun toString(): String {
         var start = (index - 1).coerceAtLeast(0)
         while (start > 0 && input[(start - 1).toInt()] != '\n' && start > index - 6) start--

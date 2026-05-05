@@ -7,7 +7,22 @@ import java.nio.charset.Charset
 import java.nio.charset.CharsetDecoder
 import java.util.WeakHashMap
 
-/** Seekable file input with checkpoints (bytePos <-> charAbs). */
+/**
+ * [CharInput] backed by a seekable [FileChannel].
+ *
+ * The input records byte-position checkpoints while decoding so [reset] can reconstruct old marks
+ * by seeking backward and decoding forward again. Capturing from a mark still requires the marked
+ * text to remain in the current character buffer.
+ *
+ * @param Span span type produced by captures.
+ * @param channel source file channel; closed by [close].
+ * @param charset charset used to decode file bytes.
+ * @param spanFactory factory used to build captured spans.
+ * @param charCapacity maximum number of decoded characters retained in memory.
+ * @param byteBufferSize byte-buffer size used while decoding.
+ * @param checkpointChars maximum decoded-character distance between checkpoints.
+ * @param checkpointBytes maximum byte distance between checkpoints.
+ */
 class SeekableFileCharInput<out Span>(
     private val channel: FileChannel,
     charset: Charset,

@@ -3,7 +3,17 @@ package one.wabbit.parsing
 import java.io.Reader
 import java.util.WeakHashMap
 
-/** Forward scanner backed by a ring; supports short-lived marks but no heroics. */
+/**
+ * Forward-only [CharInput] backed by a bounded buffer over a [Reader].
+ *
+ * This implementation is intended for streaming parsers with short-lived marks. Marks outside the
+ * retained buffer cannot be reset or captured.
+ *
+ * @param Span span type produced by captures.
+ * @param reader source reader; closed by [close].
+ * @param spanFactory factory used to build captured spans.
+ * @param capacity maximum number of buffered characters.
+ */
 class StreamingCharInput<out Span>(
     private val reader: Reader,
     private val spanFactory: SpanFactory<Span>,

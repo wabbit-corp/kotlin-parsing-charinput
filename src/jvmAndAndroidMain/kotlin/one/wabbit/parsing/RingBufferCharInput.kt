@@ -3,7 +3,17 @@ package one.wabbit.parsing
 import java.io.Reader
 import java.util.WeakHashMap
 
-/** Bounded-backtracking ring-buffer over a Reader. */
+/**
+ * [CharInput] backed by a bounded ring buffer over a [Reader].
+ *
+ * Active marks and the implicit capture boundary protect buffered regions from compaction. Resetting
+ * or capturing from a mark whose region has been compacted fails with `IllegalArgumentException`.
+ *
+ * @param Span span type produced by captures.
+ * @param reader source reader; closed by [close].
+ * @param spanFactory factory used to build captured spans.
+ * @param capacity maximum number of buffered characters.
+ */
 class RingBufferCharInput<out Span>(
     private val reader: Reader,
     private val spanFactory: SpanFactory<Span>,
@@ -217,6 +227,9 @@ class RingBufferCharInput<out Span>(
         return s
     }
 
+    /**
+     * Return a short diagnostic view around the current cursor.
+     */
     override fun toString(): String {
         val idx = head
         var s = (idx - 1).coerceAtLeast(0)
