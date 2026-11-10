@@ -596,7 +596,7 @@ abstract class CharInput<out Span> {
         /**
          * Create a JVM/Android ring-buffer input from a `java.io.Reader`.
          *
-         * Native targets throw [UnsupportedOperationException].
+         * Native and JavaScript targets throw [UnsupportedOperationException].
          */
         fun <S> ring(
             reader: Any,
@@ -607,7 +607,7 @@ abstract class CharInput<out Span> {
         /**
          * Create a JVM/Android streaming input from a `java.io.Reader`.
          *
-         * Native targets throw [UnsupportedOperationException].
+         * Native and JavaScript targets throw [UnsupportedOperationException].
          */
         fun <S> streaming(
             reader: Any,
@@ -618,7 +618,7 @@ abstract class CharInput<out Span> {
         /**
          * Create a JVM/Android seekable file input from a `FileChannel` and `Charset`.
          *
-         * Native targets throw [UnsupportedOperationException].
+         * Native and JavaScript targets throw [UnsupportedOperationException].
          */
         fun <S> seekable(
             channel: Any,

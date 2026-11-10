@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add JavaScript browser/Node targets for in-memory character input and spans. JVM/Android
+  reader/channel factories remain explicitly unsupported on JavaScript, as on Native.
+
 ## 1.2.0
 
 - Add complete README, user guide, API-reference notes, troubleshooting, and development
