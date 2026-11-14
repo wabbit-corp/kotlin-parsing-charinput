@@ -14,7 +14,8 @@ env:
 
 jobs:
   publish:
-    runs-on: ubuntu-latest
+    # Keep the JVM, JS, Android and Apple artifacts in one release.
+    runs-on: macos-15
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -28,14 +29,10 @@ jobs:
           java-version: "21"
           cache: gradle
 
-      - name: Install shell test dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y zsh
-
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: platform-tools platforms;android-34 build-tools;34.0.0
 
       - name: Ensure Gradle wrapper is executable
         run: chmod +x ./gradlew
@@ -62,7 +59,8 @@ jobs:
 
       - name: Dry run release build
         if: github.event_name == 'workflow_dispatch'
-        run: ./gradlew --no-daemon build
+        # The JS parser suite runs on Node; it does not require a browser.
+        run: ./gradlew --no-daemon --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process '-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8' build -x jsBrowserTest
 
       - name: Publish release to Maven Central
         if: github.event_name == 'push'
@@ -78,7 +76,7 @@ jobs:
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
 
 
-        run: ./gradlew --no-daemon build publishAndReleaseToMavenCentral
+        run: ./gradlew --no-daemon --max-workers=2 -Pkotlin.compiler.execution.strategy=in-process '-Dorg.gradle.jvmargs=-Xmx3g -Dfile.encoding=UTF-8' build -x jsBrowserTest publishAndReleaseToMavenCentral
 
       - name: Bundle GitHub Release assets
         if: github.event_name == 'push'

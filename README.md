@@ -35,7 +35,7 @@ repositories {
 }
 
 dependencies {
-    implementation("one.wabbit:kotlin-parsing-charinput:1.2.0")
+    implementation("one.wabbit:kotlin-parsing-charinput:2.1.0")
 }
 ```
 
